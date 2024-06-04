@@ -1,3 +1,5 @@
 magentarobotics.zip
 *.png
 *.json
+.ipynb_checkpoints/
+.DS_Store
