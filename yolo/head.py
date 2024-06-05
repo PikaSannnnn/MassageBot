@@ -6,14 +6,14 @@ import torch.nn.functional as F
 class DetectorHead(nn.Module):
     '''
     Primary head given an input feature map. The last block's intermediate layer is saved and returned for upscaling for the primary heads of other scales, if needed.
-    A final Conv2d is applied and passed through a linear activation layer to produce `num_classes`.
+    A final Conv2d is applied and passed through a linear activation layer to produce `num_classes` output predictions.
     
     channel_sizes: [input_channel size, mid_channel size, output_channel size], e.g. [256, 128, 256]
     
     Default forward:
-    input -> ConvHead -> ConvHead -> ConvHead -> Conv2d -> linear
-                                        |
     intermediate (pass to next scale) <-|
+                                        |
+    input -> ConvHead -> ConvHead -> ConvHead -> Conv2d -> linear
     '''
     def __init__(self, channel_sizes, num_classes, num_blocks=3):
         super(DetectorHead, self).__init__()

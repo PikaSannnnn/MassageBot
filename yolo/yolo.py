@@ -11,8 +11,18 @@ class Yolo(nn.Module):
         
         self.backbone = Backbone()
         
-        # Head Inits
+        #########
+        # Multi-Heads
+        ##
+        
+        # Head Block Inits NOTE: Order according to paper is scale3->scale2->scale1 such that scale2 and scale1 use the upscaled intermediate blocks
         self.scale1_head = DetectorHead()
+        self.scale2_head = DetectorHead()
+        self.scale3_head = DetectorHead()
+        
+        # Head Upsampling Layer Inits
+        self.upsample3t2 = nn.ConvTranspose2d(stride=2)
+        self.upsample2t1 = nn.ConvTranspose2d(stride=2)
         
         
     def forward(self, x):
