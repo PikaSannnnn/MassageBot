@@ -93,9 +93,7 @@ class Darknet53(nn.Module):
         out = self.conv2(out) # 256x256x32 -> 128x128x64
         out = self.bn2(out)
         out = self.leaky_relu(out)
-        print("before residual block1: ", out.shape)
         out = self.residual_block1(out) # 128x128x64 -> 128x128x64
-        print(out.shape)
         out = self.conv3(out) # 128x128x64 -> 64x64x128
         out = self.bn3(out)
         out = self.leaky_relu(out)
