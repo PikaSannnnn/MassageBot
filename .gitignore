@@ -4,4 +4,4 @@ magentarobotics.zip
 **/.ipynb_checkpoints/
 **/.DS_Store
 yolo/__pycache__/backbone.cpython-312.pyc
-**/stand_b_76.txt
+/dataset
