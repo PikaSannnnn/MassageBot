@@ -8,7 +8,7 @@ def train(model, optimizer, criterion, train_loader, val_loader, epochs, device)
         model.train()
         train_loss = 0
         start_time = time.time()
-        for i, (imgs, labels) in enumerate(train_loader):
+        for imgs, labels in train_loader:
             imgs, labels = imgs.to(device), labels.to(device)
             optimizer.zero_grad()
             outputs = model(imgs)
@@ -21,8 +21,8 @@ def train(model, optimizer, criterion, train_loader, val_loader, epochs, device)
         end_time = time.time()
         avg_val_loss = validate(model, criterion, val_loader, device)
         val_loss.append(avg_val_loss)
-        print(f"Epoch {epoch+1}/{epochs}, Iteration {i+1}/{len(train_loader)}, Loss: {avg_train_loss:.4f}, Val_loss: {avg_val_loss:.4f}, Time: {end_time - start_time:.2f}")
-    return train_loss, val_loss
+        print(f"Epoch {epoch+1}/{epochs}, Loss: {avg_train_loss:.4f}, Val_loss: {avg_val_loss:.4f}, Time: {end_time - start_time:.2f}")
+    return train_losses, val_loss
 
 def validate(model, criterion, val_loader, device):
     model.eval()
