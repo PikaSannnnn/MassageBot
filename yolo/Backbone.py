@@ -50,8 +50,8 @@ class ConvResidualBlock(nn.Module):
         out = self.leaky_relu(out)
         out = self.conv2(out)
         out = self.bn2(out)
-        out = self.leaky_relu(out)
         out = x + out
+        out = self.leaky_relu(out)
         return out
     
 class Darknet53(nn.Module):
@@ -66,19 +66,25 @@ class Darknet53(nn.Module):
         self.residual_block1 = ConvResidualBlock(64)
         self.conv3 = nn.Conv2d(64, 128, 3, 2, 1, bias=False) # 128x128x64 -> 64x64x128
         self.bn3 = nn.BatchNorm2d(128)
-        self.residual_block2 = ConvResidualBlock(128)
+        self.residual_block2 = self._make_layer(ConvResidualBlock, 128, 2)
         self.conv4 = nn.Conv2d(128, 256, 3, 2, 1, bias=False) # 64x64x128 -> 32x32x256
         self.bn4 = nn.BatchNorm2d(256)
-        self.residual_block3 = ConvResidualBlock(256)
+        self.residual_block3 = self._make_layer(ConvResidualBlock, 256, 8)
         self.conv5 = nn.Conv2d(256, 512, 3, 2, 1, bias=False) # 32x32x256 -> 16x16x512
         self.bn5 = nn.BatchNorm2d(512)
-        self.residual_block4 = ConvResidualBlock(512) # 16x16x512 -> 16x16x512
+        self.residual_block4 = self._make_layer(ConvResidualBlock, 512, 8) # 16x16x512 -> 16x16x512
         self.conv6 = nn.Conv2d(512, 1024, 3, 2, 1, bias=False) # 16x16x512 -> 8x8x1024
         self.bn6 = nn.BatchNorm2d(1024)
-        self.residual_block5 = ConvResidualBlock(1024) # 8x8x1024 -> 8x8x1024
+        self.residual_block5 = self._make_layer(ConvResidualBlock, 1024, 4) # 8x8x1024 -> 8x8x1024
         self.avgpool = nn.AdaptiveAvgPool2d(1) # 8x8x1024 -> 1x1x1024
         self.fc = nn.Linear(1024, 1000)
         self.softmax = nn.Softmax(dim=1)
+
+    def _make_layer(self, block, out_channels, blocks):
+        layers = []
+        for _ in range(blocks):
+            layers.append(block(out_channels))
+        return nn.Sequential(*layers)
     
     def forward(self, x):
         out = self.conv1(x) # 256x256x3 -> 256x256x32
@@ -94,38 +100,20 @@ class Darknet53(nn.Module):
         out = self.bn3(out)
         out = self.leaky_relu(out)
         out = self.residual_block2(out)
-        out = self.residual_block2(out)
         out = self.conv4(out) # 64x64x128 -> 32x32x256
         out = self.bn4(out)
         out = self.leaky_relu(out)
-        out = self.residual_block3(out) #1
-        out = self.residual_block3(out) #2
-        out = self.residual_block3(out) #3
-        out = self.residual_block3(out) #4
-        out = self.residual_block3(out) #5
-        out = self.residual_block3(out) #6
-        out = self.residual_block3(out) #7
-        out = self.residual_block3(out) #8
+        out = self.residual_block3(out)
         out = self.conv5(out) # 32x32x256 -> 16x16x512
         out = self.bn5(out)
         out = self.leaky_relu(out)
         out = self.residual_block4(out) #1
-        out = self.residual_block4(out) #2
-        out = self.residual_block4(out) #3
-        out = self.residual_block4(out) #4
-        out = self.residual_block4(out) #5
-        out = self.residual_block4(out) #6
-        out = self.residual_block4(out) #7
-        out = self.residual_block4(out) #8
         out = self.conv6(out) # 16x16x512 -> 8x8x1024
         out = self.bn6(out)
         out = self.leaky_relu(out)
         out = self.residual_block5(out) #1
-        out = self.residual_block5(out) #2
-        out = self.residual_block5(out) #3
-        out = self.residual_block5(out) #4
         out = self.avgpool(out) # 8x8x1024 -> 1x1x1024
-        out = out.view(1, -1) # 1x1x1024 -> 1024
+        out = torch.flatten(out,1) # 1x1x1024 -> 1024
         out = self.fc(out) # 1024 -> 1000
         out = self.softmax(out) # 1000
         return out
