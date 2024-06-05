@@ -11,19 +11,26 @@ class DetectorHead(nn.Module):
     channel_sizes: [input_channel size, mid_channel size, output_channel size], e.g. [256, 128, 256]
     
     Default forward:
-    intermediate (pass to next scale) <-|
-                                        |
+    
+    intermediate (pass to next scale) <-|  
+    
     input -> ConvHead -> ConvHead -> ConvHead -> Conv2d -> linear
     '''
-    def __init__(self, channel_sizes, num_classes, num_blocks=3):
-        super(DetectorHead, self).__init__()
+    def __init__(self, channel_sizes: list, num_classes: int, anchor_boxes: torch.tensor, num_blocks=3):
+        super().__init__()
+        # super(DetectorHead, self).__init__()
         assert isinstance(channel_sizes, list) and len(channel_sizes) == 3, 'channel_sizes expected a list of 3 integers: in_channel, mid_channel, out_channel'
+        assert isinstance(anchor_boxes, torch.Tensor), 'anchor_boxes must be a tensor of anchor box dimensions [w, l]'
         
-        self.subblocks = nn.ModuleList([ConvHead(channel_sizes) for _ in num_blocks - 1])
+        # Save anchor box info
+        self.anchor_boxes = anchor_boxes
+        self.num_anchors = self.anchor_boxes.shape[0]
+        
+        self.subblocks = nn.ModuleList([ConvHead(channel_sizes) for _ in range(num_blocks - 1)])
         self.finalblock = ConvHead(channel_sizes)   # This block will save the intermediate to upscale for other head
-        self.out_layer = nn.Conv2d(channel_sizes[2], 3 * (4 + 1 + num_classes), kernel_size=1, stride=1, padding=1)
+        self.out_layer = nn.Conv2d(channel_sizes[2], self.num_anchors * (4 + 1 + num_classes), kernel_size=1, stride=1, padding=1)
         
-        self.linear_act = nn.Linear(3 * (4 + 1 + num_classes), num_classes)
+        # self.linear_act = nn.Linear(self.num_anchors * (4 + 1 + num_classes), num_classes)
         
     def forward(self, x):
         out = x.clone()
@@ -32,7 +39,7 @@ class DetectorHead(nn.Module):
             
         out, intermediate = self.finalblock(out)
         out = self.out_layer(out)
-        out = self.linear_act(out)
+        # out = self.linear_act(out)
 
         return out, intermediate
 
@@ -42,7 +49,8 @@ class ConvHead(nn.Module):
     A subhead of 2 Conv2d layers with leaky ReLU activation functions. An intermediate feature map is saved and returned for any use.
     '''
     def __init__(self, channel_sizes):
-        super(DetectorHead, self).__init__()
+        super().__init__()
+        # super(DetectorHead, self).__init__()
         assert isinstance(channel_sizes, list) and len(channel_sizes) == 3, 'channel_sizes expected a list of 3 integers: in_channel, mid_channel, out_channel'
         
         self.conv1 = nn.Conv2d(channel_sizes[0], channel_sizes[1], kernel_size=1, stride=1, padding=1)

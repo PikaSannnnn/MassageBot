@@ -5,7 +5,8 @@ import torch.nn.functional as F
 
 class ConvResidualBlock(nn.Module):
     def __init__(self, in_channels, bias=False):
-        super(ConvResidualBlock, self).__init__()
+        super().__init__()
+        # super(ConvResidualBlock, self).__init__()
         self.conv1 = nn.Conv2d(in_channels, in_channels // 2, 1, 1, 0, bias=bias)
         self.bn1 = nn.BatchNorm2d(in_channels // 2)
         self.leaky_relu = nn.LeakyReLU(0.1)
@@ -26,7 +27,8 @@ class ConvResidualBlock(nn.Module):
 class Darknet53(nn.Module):
     # Darknet53 input should be 416x416x3 or 608x608x3
     def __init__(self):
-        super(Darknet53, self).__init__()
+        super().__init__()
+        # super(Darknet53, self).__init__()
         self.conv1 = nn.Conv2d(3, 32, 3, 1, 1, bias=False) # 256x256x3 -> 256x256x32
         self.bn1 = nn.BatchNorm2d(32)
         self.leaky_relu = nn.LeakyReLU(0.1)
@@ -61,6 +63,7 @@ class Darknet53(nn.Module):
         return nn.Sequential(*layers)
     
     def forward(self, x):
+        print('start backbone block 1')
         out = self.conv1(x) # 256x256x3 -> 256x256x32
         out = self.bn1(out) # 256x256x32 -> 256x256x32
         out = self.leaky_relu(out)
@@ -69,21 +72,25 @@ class Darknet53(nn.Module):
         out = self.leaky_relu(out)
         out = self.residual_block1(out) # 128x128x64 -> 128x128x64
         
+        print('start block 2')
         out = self.conv3(out) # 128x128x64 -> 64x64x128
         out = self.bn3(out)
         out = self.leaky_relu(out)
         out = self.residual_block2(out)
         
+        print('start block 3')
         out = self.conv4(out) # 64x64x128 -> 32x32x256
         out = self.bn4(out)
         out = self.leaky_relu(out)
         int1 = self.residual_block3(out)
         
+        print('start block 4')
         out = self.conv5(int1) # 32x32x256 -> 16x16x512
         out = self.bn5(out)
         out = self.leaky_relu(out)
         int2 = self.residual_block4(out) #1
         
+        print('start block 5')
         out = self.conv6(int2) # 16x16x512 -> 8x8x1024
         out = self.bn6(out)
         out = self.leaky_relu(out)
