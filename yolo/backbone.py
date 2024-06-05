@@ -93,4 +93,4 @@ class Darknet53(nn.Module):
         out = torch.flatten(out,1) # 1x1x1024 -> 1024
         out = self.fc(out) # 1024 -> 1000
         out = self.softmax(out) # 1000
-        return out, (int1, int2, int3)
+        return out, (int3, int2, int1)  # return intermediates in reverse due to upsampling logic

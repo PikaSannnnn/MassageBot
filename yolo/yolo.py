@@ -24,19 +24,31 @@ class Yolo(nn.Module):
                                         )
         
         # Head Upsampling Layer Inits
-        self.upsample3t2 = nn.ConvTranspose2d(stride=2)
-        self.upsample2t1 = nn.ConvTranspose2d(stride=2)
+        self.upsamples = nn.ModuleList(nn.ConvTranspose2d(stride=2),    # upsample from scale3 to scale2
+                                       nn.ConvTranspose2d(stride=2),    # upsample from scale2 to scale1
+                                       None                             # set to None so nothing is ran when zipping
+                                      )
+        # self.upsample3t2 = nn.ConvTranspose2d(stride=2)
+        # self.upsample2t1 = nn.ConvTranspose2d(stride=2)
         
         
     def forward(self, x):
-        out, intermediates = self.backbone(x)
+        backbone_map, intermediates = self.backbone(x)
         
         # Heads
-        
+        head_results = []   # results will be stored in order of [scale3, scale2, scale1], i.e. results from last, 2ndtolast, 3rdtolast after head detectors
+        upsampled_fm = None
+        for scale_head, upsample, intermediate in zip(self.scale_heads, self.upsamples, intermediates):
+            if upsampled_fm != None:    # sample3 should not concat
+                intermediate = torch.concat(intermediate, upsampled_fm)
+            
+            detect_result, l2p_int = scale_head(intermediate)  # detect_result is the final detector prediction, l2p_int is the 2 laters previous intermediate
+            head_results.append(detect_result)
+            
+            if upsample != None:        # sample1 should not upsample
+                upsampled_fm = upsample(l2p_int)
+            
         return out
-    
-    def yolo_out_block(self):
-        pass
 
 if __name__ == '__main__':
     yolo_test = Yolo()
