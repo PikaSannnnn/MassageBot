@@ -2,22 +2,26 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from backbone import Backbone
+from backbone import Darknet53
 from head import DetectorHead
 
 class Yolo(nn.Module):
-    def __init__(self):
+    def __init__(self, num_classes):
         super(Yolo, self).__init__()
         
-        self.backbone = Backbone()
+        #########
+        # Backbone
+        ##
+        self.backbone = Darknet53()
         
         #########
         # Multi-Heads
         ##
         # Head Block Inits NOTE: Order according to paper is scale3->scale2->scale1 such that scale2 and scale1 use the upscaled intermediate blocks
-        self.scale1_head = DetectorHead()
-        self.scale2_head = DetectorHead()
-        self.scale3_head = DetectorHead()
+        self.scale_heads = nn.ModuleList(DetectorHead([], num_classes), # scale3 from last resblock (group)
+                                         DetectorHead([], num_classes), # scale2 from 2nd to last resblock (group)
+                                         DetectorHead([], num_classes)  # scale1 from 3rd to last resblock (group)
+                                        )
         
         # Head Upsampling Layer Inits
         self.upsample3t2 = nn.ConvTranspose2d(stride=2)
@@ -25,7 +29,7 @@ class Yolo(nn.Module):
         
         
     def forward(self, x):
-        out = None
+        out, intermediates = self.backbone(x)
         
         # Heads
         
