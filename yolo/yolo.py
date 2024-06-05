@@ -14,7 +14,6 @@ class Yolo(nn.Module):
         #########
         # Multi-Heads
         ##
-        
         # Head Block Inits NOTE: Order according to paper is scale3->scale2->scale1 such that scale2 and scale1 use the upscaled intermediate blocks
         self.scale1_head = DetectorHead()
         self.scale2_head = DetectorHead()
@@ -29,7 +28,6 @@ class Yolo(nn.Module):
         out = None
         
         # Heads
-        # TODO: N × N × [3 ∗ (4 + 1 + num_classes)]
         
         return out
     

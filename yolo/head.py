@@ -21,9 +21,9 @@ class DetectorHead(nn.Module):
         
         self.subblocks = nn.ModuleList([ConvHead(channel_sizes) for _ in num_blocks - 1])
         self.finalblock = ConvHead(channel_sizes)   # This block will save the intermediate to upscale for other head
-        self.out_layer = nn.Conv2d(channel_sizes[2], 255, kernel_size=1, stride=1, padding=1)
+        self.out_layer = nn.Conv2d(channel_sizes[2], 3 * (4 + 1 + num_classes), kernel_size=1, stride=1, padding=1)
         
-        self.linear_act = nn.Linear(255, num_classes)
+        self.linear_act = nn.Linear(3 * (4 + 1 + num_classes), num_classes)
         
     def forward(self, x):
         out = x.clone()
