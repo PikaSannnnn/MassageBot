@@ -50,8 +50,8 @@ class ConvResidualBlock(nn.Module):
         out = self.leaky_relu(out)
         out = self.conv2(out)
         out = self.bn2(out)
-        out = self.leaky_relu(out)
         out = x + out
+        out = self.leaky_relu(out)
         return out
     
 class Darknet53(nn.Module):
@@ -100,7 +100,6 @@ class Darknet53(nn.Module):
         out = self.bn3(out)
         out = self.leaky_relu(out)
         out = self.residual_block2(out)
-        out = self.residual_block2(out)
         out = self.conv4(out) # 64x64x128 -> 32x32x256
         out = self.bn4(out)
         out = self.leaky_relu(out)
@@ -114,7 +113,7 @@ class Darknet53(nn.Module):
         out = self.leaky_relu(out)
         out = self.residual_block5(out) #1
         out = self.avgpool(out) # 8x8x1024 -> 1x1x1024
-        out = out.view(1, -1) # 1x1x1024 -> 1024
+        out = torch.flatten(out,1) # 1x1x1024 -> 1024
         out = self.fc(out) # 1024 -> 1000
         out = self.softmax(out) # 1000
         return out
