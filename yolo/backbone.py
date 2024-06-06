@@ -71,33 +71,42 @@ class Darknet53(nn.Module):
         out = self.bn2(out)
         out = self.leaky_relu(out)
         out = self.residual_block1(out) # 128x128x64 -> 128x128x64
+        print('post block 1', out.shape)
         
         print('start block 2')
         out = self.conv3(out) # 128x128x64 -> 64x64x128
         out = self.bn3(out)
         out = self.leaky_relu(out)
+        print('block 2 pre-res')
         out = self.residual_block2(out)
+        print('post block 2', out.shape)
         
         print('start block 3')
         out = self.conv4(out) # 64x64x128 -> 32x32x256
         out = self.bn4(out)
         out = self.leaky_relu(out)
+        print('block 3 pre-res')
         int1 = self.residual_block3(out)
+        print('post block 3', out.shape)
         
         print('start block 4')
         out = self.conv5(int1) # 32x32x256 -> 16x16x512
         out = self.bn5(out)
         out = self.leaky_relu(out)
+        print('block 4 pre-res')
         int2 = self.residual_block4(out) #1
+        print('post block 4', out.shape)
         
         print('start block 5')
         out = self.conv6(int2) # 16x16x512 -> 8x8x1024
         out = self.bn6(out)
         out = self.leaky_relu(out)
+        print('block 5 pre-res')
         int3 = self.residual_block5(out) #1
+        print('post block 5', out.shape)
         
-        out = self.avgpool(int3) # 8x8x1024 -> 1x1x1024
-        out = torch.flatten(out,1) # 1x1x1024 -> 1024
-        out = self.fc(out) # 1024 -> 1000
-        out = self.softmax(out) # 1000
-        return out, (int3, int2, int1)  # return intermediates in reverse due to upsampling logic
+        # out = self.avgpool(int3) # 8x8x1024 -> 1x1x1024
+        # out = torch.flatten(out,1) # 1x1x1024 -> 1024
+        # out = self.fc(out) # 1024 -> 1000
+        # out = self.softmax(out) # 1000
+        return int3, int2, int1  # return intermediates in reverse due to upsampling logic
