@@ -7,3 +7,5 @@ magentarobotics.zip
 **/__pycache__/
 **/dataset/
 magentarobotics/
+notebook_steps.steps
+
