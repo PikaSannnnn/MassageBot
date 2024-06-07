@@ -1,3 +1,12 @@
+Attempted R-CNN -> Not lightweight enough and does not boast the same real-time speed as yolo.
+                -> Not ideal for our project task, where it needs as quick of a response time as possible.
+
+-----
+Attempted Yolov7 -> Not lightweight enough. Not enough resources.
+
+-----
+Chose Yolov3 for lightweightness and the fact that it incorporates the best of both Yolo and R-CNN (both of which we explored to possibly implement for project task)
+
 Tried with 1920x1920 with 14 anchors -> GPU/Hardware Limitations
                                      -> Also shrunk due to time, takes too long to iterate through all
 Tried with 640x640 with 14 anchors -> GPU/Hardware Limitations (after 2 batches)
