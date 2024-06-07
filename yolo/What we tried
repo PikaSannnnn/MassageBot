@@ -1,0 +1,26 @@
+Attempted R-CNN -> Not lightweight enough and does not boast the same real-time speed as yolo.
+                -> Not ideal for our project task, where it needs as quick of a response time as possible.
+
+-----
+Attempted Yolov7 -> Not lightweight enough. Not enough resources.
+
+-----
+Chose Yolov3 for lightweightness and the fact that it incorporates the best of both Yolo and R-CNN (both of which we explored to possibly implement for project task)
+
+Tried with 1920x1920 with 14 anchors -> GPU/Hardware Limitations
+                                     -> Also shrunk due to time, takes too long to iterate through all
+Tried with 640x640 with 14 anchors -> GPU/Hardware Limitations (after 2 batches)
+Tried with 640x640 with 9 anchors -> ...
+Tried with 640x640 with 5 anchors -> ...
+Trying with 416x416 with 5 anchors -> Still dies after 3 batches, but will try memory freeing.
+                                   -> Might drop to 3 anchors to improve time (a lot of iterations with 5 anchors
+                                   
+-----
+Used IoU for loss computation for box, object, and class loss -> Currently exploring, but may do MSE only as per the paper(s)
+                                    -> Or maybe use IoU for deciding which predictions are relevant
+Going for the faster method. Will be convering dataloader so that it mimics vector of a single anchor box prediction
+                                    -> Will assume t_x is offset from top left
+
+Looking forward:
+- Video training and testing (lack of data currently)
+- Use pre-trained weights
