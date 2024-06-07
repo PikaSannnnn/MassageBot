@@ -6,12 +6,13 @@ from .backbone import Darknet53
 from .head import DetectorHead
 
 class Yolo(nn.Module):
-    def __init__(self, num_classes, anchor_boxes: torch.tensor):
+    def __init__(self, num_classes, num_anchors):
         super().__init__()
         # super(Yolo, self).__init__()
-        assert isinstance(anchor_boxes, torch.Tensor), 'anchor_boxes must be a tensor of anchor box dimensions [w, l]'
+#         assert isinstance(anchor_boxes, torch.Tensor), 'anchor_boxes must be a tensor of anchor box dimensions [w, l]'
         
-        self.anchor_boxes = anchor_boxes
+#         self.anchor_boxes = anchor_boxes
+        self.num_anchors = num_anchors
         
         #########
         # Backbone
@@ -22,9 +23,9 @@ class Yolo(nn.Module):
         # Multi-Heads
         ##
         # Head Block Inits NOTE: Order according to paper is scale3->scale2->scale1 such that scale2 and scale1 use the upscaled intermediate blocks
-        self.scale_heads = nn.ModuleList([DetectorHead([[1024, 512, 1024]] * 3, num_classes, self.anchor_boxes / 8),                        # scale3 from last resblock (group)
-                                          DetectorHead([[1024, 256, 512]] + [[512, 256, 512]] * 2, num_classes, self.anchor_boxes / 16),    # scale2 from 2nd to last resblock (group)
-                                          DetectorHead([[512, 128, 256]] + [[256, 128, 256]] * 2, num_classes, self.anchor_boxes / 32)      # scale1 from 3rd to last resblock (group)
+        self.scale_heads = nn.ModuleList([DetectorHead([[1024, 512, 1024]] * 3, num_classes, self.num_anchors),                        # scale3 from last resblock (group)
+                                          DetectorHead([[1024, 256, 512]] + [[512, 256, 512]] * 2, num_classes, self.num_anchors),    # scale2 from 2nd to last resblock (group)
+                                          DetectorHead([[512, 128, 256]] + [[256, 128, 256]] * 2, num_classes, self.num_anchors)      # scale1 from 3rd to last resblock (group)
                                         ])
         
         # Head Upsampling Layer Inits
