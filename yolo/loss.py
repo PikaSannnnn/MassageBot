@@ -123,17 +123,27 @@ class MultiFactorLoss(nn.Module):
                 pred_image = torch.stack(torch.split(pred_image, 19, dim=0))
         
                 # Perform Objectness Loss
-                self.obj_loss(image_gt.to('cpu'), pred_image.to('cpu'), scale_dim)
+                # self.obj_loss(image_gt.to('cpu'), pred_image.to('cpu'), scale_dim)
 
                 # Get relevant cell coordinates
                 gt_valid = image_gt[image_gt[:, 4] != 0] # Use only the ones with objectness = 1 (0 is from padding)
                 cell_coords = ((gt_valid[:, [-4, -3]] * scale_dim) - 1).int() # gt % x y * 13 (etc) = pixel position; int = cell position
         #         cell_coords = cell_coords[:, 0] * scale_dim + cell_coords[:, 1] # DEBUG: temp convert to flattened idx
+        
+                
 
-                # print('c', cell_coords.shape)
+                print('c', cell_coords.shape)
                 # print('t', test[:, :, cell_coords[:, 0], cell_coords[:, 1]].shape)
                 relevant_preds = pred_image[:, :, cell_coords[:, 0], cell_coords[:, 1]]
                 # print('rb', relevant_preds.shape)
+                for i, (coord, gt) in enumerate(zip(cell_coords, gt_valid)):
+                    print(coord, gt)
+                    print(relevant_preds[:, :, i])
+                    print('-'*30)
+                    break
+                # print(relevant_preds[0, :, 1])
+                # print(cell_coords[0])
+                print(pred_image[:, :, cell_coords[0, 0], cell_coords[0, 1]])
                 
                 # relevant_preds = torch.stack(torch.split(relevant_preds, 19, dim=0)) # DEBUG: Need to remove, no longer needed theoretically
                 
@@ -141,7 +151,7 @@ class MultiFactorLoss(nn.Module):
                 print(gt_valid.shape)
                 # print(gt_valid)
                 # print('HERE BE THE OTHER')
-                # print(relevant_preds.shape)
+                print(relevant_preds.shape)
                 # print(relevant_preds)
                 
                 # Perform Box Loss
