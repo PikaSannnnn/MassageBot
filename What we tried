@@ -20,7 +20,7 @@ Used IoU for loss computation for box, object, and class loss -> Currently explo
                                     -> Or maybe use IoU for deciding which predictions are relevant
                                     -> Or using IoU to choose which to compute MSE Loss with vs computing MSE for all and aggregating
 
-
+Considering Batch Avg vs Batch Sum for aggregation. Currently also doing Avg MSE per image
 
 
 Looking forward:
