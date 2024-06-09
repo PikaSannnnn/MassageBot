@@ -15,7 +15,9 @@ class MultiFactorLoss(nn.Module):
         self.num_anchors = num_anchors
         self.batch_avg = batch_avg        
         
-        self.mseloss = nn.MSELoss()
+        self.mseloss = nn.MSELoss(reduction = 'sum')
+        self.bceloss = nn.BCELoss(reduction = 'sum')
+        self.celoss = nn.CrossEntropyLoss(reduction = 'sum')
 
     def ObjDiceLoss(self, target_mask, pred_mask):
         smooth = 1e-6
@@ -42,7 +44,7 @@ class MultiFactorLoss(nn.Module):
 
         # target_OH = torch.zeros(scale, scale)
         # target_OH = one_hot_coordinate(target, scale).view(-1)
-        return F.binary_cross_entropy(target_OH, pred_OH)
+        return self.bceloss(target_OH, pred_OH)
         # return self.ObjDiceLoss(target_OH, pred_OH)
         
     def bounding_loss(self, ground_truths, relevant_preds, scale_dim):
@@ -75,6 +77,34 @@ class MultiFactorLoss(nn.Module):
 #         return torch.mean(torch.tensor(mse_losses))
         return self.mseloss(ground_truths.repeat(self.num_anchors, 1, 1)[:, :, :4],
                             relevant_preds[:, :, :4])
+        
+    def CELoss(self, pred, target):
+        # pred = (1, 14) that is in raw form
+        # target = (1) that is the class id
+        return self.celoss(pred, target)
+    
+    def class_loss(self, target, pred, scale):
+        # pred = (5, 21, 13)
+        # target = (13, 25)
+        # pred_coord = (13, 2)
+
+        # print(target_coords.shape)
+        # target_coord = function_to_grid(target, scale) # (13, 2)
+        target_class = target[:, 5:19] # (13, 14)
+        target_class = target_class.repeat(self.num_anchors, 1, 1)
+        # target_class_id = torch.argmax(target_class, dim=1) # (13)
+        pred_permute = pred.permute(0, 2, 1) # (5, 13, 21)
+        predictions = pred_permute[:, :, 5:19] # (5, 13, 14)
+        # loss = 0
+        # print(predictions.shape, target_class.shape)
+        
+        return self.CELoss(predictions, target_class)
+        # loss += CELoss(predictions[0], target_class_id)
+        # loss += CELoss(predictions[1], target_class_id)
+        # loss += CELoss(predictions[2], target_class_id)
+        # loss += CELoss(predictions[3], target_class_id)
+        # loss += CELoss(predictions[4], target_class_id)
+        # return loss
 
     def forward(self, anchors, true_y, pred_y):
         '''
@@ -93,27 +123,17 @@ class MultiFactorLoss(nn.Module):
 #             print(gts.shape)
             bbox_losses = []
             obj_losses = []
-            for pred_image, image_gt in zip(pred_img_scales, gts):
-                # anchors // (416 // scale_dim)
-        #         img_scale = img_scale.permute(1, 2, 0)
-        #         img_scale = img_scale.view(95, -1)  # DEBUG: temp flatten for testing
-        
+            class_losses = []
+            for pred_image, image_gt in zip(pred_img_scales, gts):        
                 pred_image = torch.stack(torch.split(pred_image, 19, dim=0))
-                print(pred_image.shape)
         
-
                 # Get relevant cell coordinates
                 gt_valid = image_gt[image_gt[:, 4] != 0] # Use only the ones with objectness = 1 (0 is from padding)
-                cell_coords = ((gt_valid[:, [-4, -3]] * scale_dim) - 1).int() # gt % x y * 13 (etc) = pixel position; int = cell position
-        #         cell_coords = cell_coords[:, 0] * scale_dim + cell_coords[:, 1] # DEBUG: temp convert to flattened idx
+                cell_coords = ((gt_valid[:, [-4, -3]] * (scale_dim - 0.001))).int() # gt % x y * 13 (etc) = pixel position; int = cell position Note: -0.001 to prevent possible chance of it = scale_dim, which is out of range (NEEDS TESTING)
                 
                 # Perform Objectness Loss
-                # self.obj_loss(image_gt.to('cpu'), pred_image.to('cpu'), scale_dim)
                 obj_losses.append(self.ObjLoss(cell_coords, pred_image.to('cpu'), scale_dim))
-                # print(obj_losses[-1])
-                # return
         
-            
                 # print('c', cell_coords.shape)
                 # print('t', test[:, :, cell_coords[:, 0], cell_coords[:, 1]].shape)
                 relevant_preds = pred_image[:, :, cell_coords[:, 0], cell_coords[:, 1]]
@@ -127,8 +147,6 @@ class MultiFactorLoss(nn.Module):
                 # print(cell_coords[0])
                 # print(pred_image[:, :, cell_coords[0, 0], cell_coords[0, 1]])
                 
-                # relevant_preds = torch.stack(torch.split(relevant_preds, 19, dim=0)) # DEBUG: Need to remove, no longer needed theoretically
-                
                 # NOTE: PRINT THIS TO SEE WHATS GOING ON
                 # print(gt_valid.shape)
                 # print(gt_valid)
@@ -139,6 +157,9 @@ class MultiFactorLoss(nn.Module):
                 # Perform Box Loss
                 bbox_losses.append(self.bounding_loss(gt_valid.to('cpu'), relevant_preds.to('cpu'), scale_dim))
                 
+                # Perform Class Loss
+                class_losses.append(self.class_loss(gt_valid.to('cpu'), relevant_preds.to('cpu'), scale_dim))
+                
             # Mean across batches
             bbox_losses = torch.tensor(bbox_losses)
             bbox_losses = torch.mean(bbox_losses) if self.batch_avg else torch.sum(bbox_losses)
@@ -146,8 +167,13 @@ class MultiFactorLoss(nn.Module):
             obj_losses = torch.tensor(obj_losses)
             obj_losses = torch.mean(obj_losses) if self.batch_avg else torch.sum(obj_losses)
             
+            class_losses = torch.tensor(class_losses)
+            class_losses = torch.mean(class_losses) if self.batch_avg else torch.sum(class_losses)
+            
             # Add the total los for this scale
-            total_loss += bbox_losses + obj_losses
+            total_loss += bbox_losses + obj_losses + class_losses
+            
+        # TODO: If loss gets really bad, mean total_loss
         return total_loss
     
     def backward(sef):
