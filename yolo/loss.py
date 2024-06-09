@@ -99,6 +99,7 @@ class MultiFactorLoss(nn.Module):
         #         img_scale = img_scale.view(95, -1)  # DEBUG: temp flatten for testing
         
                 pred_image = torch.stack(torch.split(pred_image, 19, dim=0))
+                print(pred_image.shape)
         
 
                 # Get relevant cell coordinates
