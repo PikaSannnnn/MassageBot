@@ -21,6 +21,7 @@ class MultiFactorLoss(nn.Module):
         self.celoss = nn.CrossEntropyLoss()
 
     def ObjLoss(self, target_coords, preds, scale):
+        # TODO: THIS IS BROKEN WHY IS IT GIVING NEGATIVE AND VERY BIG LOSSSSSS
         assert preds.shape[0] == self.num_anchors, f'prediction should have {self.num_anchors} anchors'
         
         loss = 0
