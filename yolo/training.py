@@ -24,7 +24,6 @@ def train(model, optimizer, criterion, train_loader, val_loader, anchors, epochs
             
             outputs = model(imgs)
             loss = criterion(anchors, labels, outputs)            
-            loss.requires_grad = True
             
             optimizer.zero_grad()
             
@@ -33,10 +32,11 @@ def train(model, optimizer, criterion, train_loader, val_loader, anchors, epochs
             train_loss += loss.item()
                 
             # Delete stuff to free up resources
-            del imgs
-            del labels
-            del outputs
-            del loss
+            torch.cuda.empty_cache()
+            # del imgs
+            # del labels
+            # del outputs
+            # del loss
             
         avg_train_loss = train_loss/len(train_loader)
         train_losses.append(avg_train_loss)
