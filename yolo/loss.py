@@ -17,6 +17,7 @@ class MultiFactorLoss(nn.Module):
         
         self.mseloss = nn.MSELoss()
         self.bceloss = nn.BCEWithLogitsLoss()
+        # self.bceloss = nn.BCELoss()
         self.celoss = nn.CrossEntropyLoss()
 
     def ObjLoss(self, target_coords, preds, scale):
@@ -30,9 +31,8 @@ class MultiFactorLoss(nn.Module):
         
         pred_OH = preds[:, 4, :, :]
         pred_OH = pred_OH.view(self.num_anchors, -1)
-        # pred_OH = torch.sigmoid(pred_OH)
         
-        return self.bceloss(target_OH, pred_OH)
+        return self.bceloss(pred_OH, target_OH)
         
     def bounding_loss(self, ground_truths, relevant_preds, scale_dim):
         # Broadcast sig and exp across each layer
@@ -82,15 +82,22 @@ class MultiFactorLoss(nn.Module):
                 relevant_preds = pred_image[:, :, cell_coords[:, 0], cell_coords[:, 1]]
                 
                 # Perform Objectness Loss
-                total_loss += self.ObjLoss(cell_coords, pred_image.to('cpu'), scale_dim)
+                obj_loss = self.ObjLoss(cell_coords, pred_image.to('cpu'), scale_dim)
+                total_loss += obj_loss
                 # obj_losses.append(self.ObjLoss(cell_coords, pred_image.to('cpu'), scale_dim))
                 
                 # Perform Box Loss
-                total_loss += self.bounding_loss(gt_valid.to('cpu'), relevant_preds.to('cpu'), scale_dim)
+                box_loss = self.bounding_loss(gt_valid.to('cpu'), relevant_preds.to('cpu'), scale_dim)
+                total_loss += box_loss
                 # bbox_losses.append(self.bounding_loss(gt_valid.to('cpu'), relevant_preds.to('cpu'), scale_dim))
                 
                 # Perform Class Loss
-                total_loss += self.class_loss(gt_valid.to('cpu'), relevant_preds.to('cpu'), scale_dim)
+                class_loss = self.class_loss(gt_valid.to('cpu'), relevant_preds.to('cpu'), scale_dim)
+                total_loss += class_loss
+                
+                # Check Negative Loss
+                if obj_loss.item() < 0 or box_loss.item() < 0 or class_loss.item() < 0:
+                    print(obj_loss.item(), box_loss.item(), class_loss.item())
                 # class_losses.append(self.class_loss(gt_valid.to('cpu'), relevant_preds.to('cpu'), scale_dim))
                 
             # Mean across batches
