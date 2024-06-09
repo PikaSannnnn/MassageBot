@@ -39,70 +39,11 @@ class MultiFactorLoss(nn.Module):
         pred_OH = torch.sigmoid(pred_OH)
         # print(pred_OH.shape)
         # print(pred_OH)
-        # return
-        
-        # return
+
         # target_OH = torch.zeros(scale, scale)
         # target_OH = one_hot_coordinate(target, scale).view(-1)
-        # loss = F.binary_cross_entropy(pred_OH, target_OH)
-        return self.ObjDiceLoss(target_OH, pred_OH)
-        
-    # def function_to_grid(self, ground_truths, S_dim):
-    #     # output_size = [13, 26, 52]
-    #     # S_dim = output_size[S]
-    #     return torch.round(ground_truths[:,:,-4:-2] * S_dim).long()
-    
-    # def one_hot_coordinate(self, ground_truths, S_dim):
-    #     # output_size = [13, 26, 52]
-    #     # S_dim = output_size[S]
-    #     print(ground_truths.shape)
-    #     grid_have_stuff = torch.round(ground_truths[:,:,-4:-2] * S_dim).long()
-    #     # grid_have_stuff = self.function_to_grid(ground_truths, S_dim)
-    #     one_hot = torch.zeros(10,S_dim,S_dim)
-    #     for i in range(10):
-    #         one_hot[i,grid_have_stuff[i,:,1],grid_have_stuff[i,:,0]] = 1
-    #     return one_hot
-
-    # def obj_loss(self, target, pred, scale_dim):
-    #     # torch.Size([10, 95, 13, 13]) torch.Size([10, 14, 3, 25])
-    #     # torch.Size([5, 19, 13, 13]) torch.Size([14, 25])
-    #     print(pred.shape, target.shape)
-    #     # test = target.repeat(5, 1)
-    #     # print(torch.flatten(test))
-        
-    #     # pred = pred.reshape(13, 13, -1, 19)
-    #     pred = pred[:, 4, :, :]
-    #     # print(test_pred.shape)
-    #     # print(test_pred[0, 0, 0])
-    #     # print(pred[0, 4, 0, 0])
-    #     print(torch.flatten(pred).shape)
-        
-    #     # pred0 = pred[0].reshape(10, 13, 13, -1, 19)
-    #     # pred1 = pred[1].reshape(10, 26, 26, -1, 19)
-    #     # pred2 = pred[2].reshape(10, 52, 52, -1, 19)
-    #     # pred0 = pred0[:,:,:,:,4].reshape(-1)
-    #     # pred1 = pred1[:,:,:,:,4].reshape(-1)
-    #     # pred2 = pred2[:,:,:,:,4].reshape(-1)
-        
-    #     # print(pred0.shape, target.shape)
-
-    #     OH_gt0 = self.one_hot_coordinate(target, scale_dim).reshape(-1).repeat(5)
-    #     # OH_gt1 = one_hot_coordinate(target, scale_dim).reshape(-1).repeat(5)
-    #     # OH_gt2 = one_hot_coordinate(target, scale_dim).reshape(-1).repeat(5)
-    #     print(OH_gt0.shape)
-    #     return
-        
-    #     # Apply sigmoid activation to the raw predictions
-    #     pred0 = torch.sigmoid(pred0)
-    #     pred1 = torch.sigmoid(pred1)
-    #     pred2 = torch.sigmoid(pred2)
-        
-    #     # Compute the binary cross entropy loss
-    #     loss = F.binary_cross_entropy(pred0, OH_gt0)
-    #     loss += F.binary_cross_entropy(pred1, OH_gt1)
-    #     loss += F.binary_cross_entropy(pred2, OH_gt2)
-        
-    #     return loss
+        return F.binary_cross_entropy(target_OH, pred_OH)
+        # return self.ObjDiceLoss(target_OH, pred_OH)
         
     def bounding_loss(self, ground_truths, relevant_preds, scale_dim):
         # Broadcast sig and exp across each layer
@@ -168,6 +109,8 @@ class MultiFactorLoss(nn.Module):
                 # Perform Objectness Loss
                 # self.obj_loss(image_gt.to('cpu'), pred_image.to('cpu'), scale_dim)
                 obj_losses.append(self.ObjLoss(cell_coords, pred_image.to('cpu'), scale_dim))
+                # print(obj_losses[-1])
+                # return
         
             
                 # print('c', cell_coords.shape)
