@@ -28,10 +28,15 @@ class MultiFactorLoss(nn.Module):
         target_OH = torch.zeros(scale, scale)
         target_OH[target_coords[:,1], target_coords[:,0]] = 1
         target_OH = target_OH.view(-1)
+        target_OH_noobj = 1 - target_OH
         target_OH = target_OH.repeat(self.num_anchors, 1)
+        target_OH_noobj = target_OH_noobj.repeat(self.num_anchors, 1)
         
         pred_OH = preds[:, 4, :, :]
         pred_OH = pred_OH.view(self.num_anchors, -1)
+        BCELOSS = self.bceloss(pred_OH, target_OH)
+        loss = (BCELOSS * target_OH).sum() + 0.5*(BCELOSS * target_OH_noobj).sum()
+
         
         return self.bceloss(pred_OH, target_OH)
         
