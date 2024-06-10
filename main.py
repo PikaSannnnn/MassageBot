@@ -151,7 +151,9 @@ def plot_pic_with_box(img, pred, Scale, imgIdx,anchorIdx=0, img_size=416, thresh
 
     # Draw Image with Boxes
     fig,ax = plt.subplots(1)
-    ax.imshow(img.cpu().permute(1, 2, 0))
+    tmp_img = img.cpu().permute(1, 2, 0) 
+    tmp_img = cv2.cvtColor(tmp_img.numpy(), cv2.COLOR_BGR2RGB)
+    ax.imshow(tmp_img)
     for i in range(Scale):
         for j in range(Scale):
             if torch.sigmoid(output[imgIdx, i, j, 4]) > threshold:
@@ -207,7 +209,7 @@ def train(overwrite=False):
                 #     print(train_losses)
                 
                 if os.path.exists(model_file) and not overwrite:
-                    print(os.path.basename(model_dir), 'already exists, skipping. If you\'d like to overwrite it, set -w flag.')
+                    print(os.path.basename(model_file), 'already exists, skipping. If you\'d like to overwrite it, set -w flag.')
                     continue
                 
                 train_loader, val_loader, test_loader = get_loaders()
