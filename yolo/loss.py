@@ -21,6 +21,8 @@ class MultiFactorLoss(nn.Module):
         self.celoss = nn.CrossEntropyLoss()
 
     def ObjLoss(self, target_coords, preds, scale):
+        OBJ_WEIGHT = 20
+        NOOBJ_WEIGHT = 0.1
         # TODO: THIS IS BROKEN WHY IS IT GIVING NEGATIVE AND VERY BIG LOSSSSSS
         assert preds.shape[0] == self.num_anchors, f'prediction should have {self.num_anchors} anchors'
         
@@ -35,7 +37,7 @@ class MultiFactorLoss(nn.Module):
         pred_OH = preds[:, 4, :, :]
         pred_OH = pred_OH.view(self.num_anchors, -1)
         BCELOSS = self.bceloss(pred_OH, target_OH)
-        loss = (BCELOSS * target_OH).sum() + 0.5*(BCELOSS * target_OH_noobj).sum()
+        loss = OBJ_WEIGHT*(BCELOSS * target_OH).sum() + NOOBJ_WEIGHT*(BCELOSS * target_OH_noobj).sum()
 
         
         return self.bceloss(pred_OH, target_OH)
