@@ -50,6 +50,8 @@ class_dict = {
     'RWrist': 12,
     'Neck': 13
 }
+inverse_class_dict = {value: key for key, value in class_dict.items()}
+
 num_classes = len(class_dict.keys())
 
 anchors = torch.tensor([[151.37092679, 151.37092679], [116.1775567, 116.1775567 ], [ 69.10933737,  69.10933737], 
@@ -130,8 +132,6 @@ def show_img_box(img, data, img_path=None):
         plt.savefig(img_path)
     
 def plot_pic_with_box(img, pred, Scale, imgIdx,anchorIdx=0, img_size=416, threshold=0.5, img_path=None):
-    anchors = torch.tensor([[151.37092679, 151.37092679], [116.1775567, 116.1775567 ], [ 69.10933737,  69.10933737], 
-                        [206.27557981, 206.27557981], [257.97346109, 257.97346109]]).cpu()
     anchors_size = anchors[anchorIdx]
     grid_size = torch.tensor([Scale, Scale]).cpu()
     anchors_dim = torch.tensor([1920, 1920]).cpu()
@@ -143,6 +143,7 @@ def plot_pic_with_box(img, pred, Scale, imgIdx,anchorIdx=0, img_size=416, thresh
     output = pred_reshape[:,:,:,anchorIdx,:].cpu() # (10, 13, 13, 19)
     box_xy = output[..., :2].detach().cpu() # (10, 13, 13, 2)
     box_wh = output[..., 2:4].cpu() # (10, 13, 13, 2)
+    box_class = output[..., 5:].cpu() # (10, 13, 13, 14)
     
     scale_ratio = Scale / img_size # Scaler
     box_wh = torch.exp(box_wh).cpu() * anchors_yolo.cpu()
@@ -165,6 +166,9 @@ def plot_pic_with_box(img, pred, Scale, imgIdx,anchorIdx=0, img_size=416, thresh
 
                 ax.add_patch(box)
                 
+                class_id = torch.argmax(box_class[imgIdx, i, j, :]).item()
+                ax.text(box_truexy[0], box_truexy[1], inverse_class_dict[class_id], fontsize=6, color='red')
+
     if img_path != None: 
         fig.savefig(img_path)
 
