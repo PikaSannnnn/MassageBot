@@ -22,7 +22,14 @@ Going for the faster method. Will be convering dataloader so that it mimics vect
                                     -> Will assume t_x is offset from top left (in percentage to better normalize)
                                         -> This means when getting the actual offsets, need to convert to pixel/cells, i.e. 1 pixel is 0.07..
                                         -> Also means that will need to do a bit more math to make sure the percentage goes to correct top left, i.e. 0.07... ~= 0.9 pixel -> should recognize as 1
+                                        
+Split obj loss calculation between obj and noobj for different weight of loss. (TODO: Need more explanation)               
+Tried different weights for obj/noobj, epochs, learning rates
+
+Split noobj and obj calculation into seperate BCELogit loss calculations (flattened and different cells picked out)
 
 Looking forward:
 - Video training and testing (lack of data currently)
+- More data (low amount of data)
 - Use pre-trained weights
+- Hardware Limitations

@@ -10,37 +10,67 @@ else:
     device = torch.device('cpu')
 
 class MultiFactorLoss(nn.Module):
-    def __init__(self, num_anchors, batch_avg=False):
+    def __init__(self, num_anchors, obj_weights=(1, 10)):
         super().__init__()
         self.num_anchors = num_anchors
-        self.batch_avg = batch_avg        
         
         self.mseloss = nn.MSELoss()
         self.bceloss = nn.BCEWithLogitsLoss()
         # self.bceloss = nn.BCELoss()
         self.celoss = nn.CrossEntropyLoss()
 
+        assert len(obj_weights) == 2, 'obj_weights must be a 2d tuple or list of the (Obj_weight, and NoObj_weight)'
+        self.obj_weights = obj_weights
+
     def ObjLoss(self, target_coords, preds, scale):
-        OBJ_WEIGHT = 20
-        NOOBJ_WEIGHT = 0.1
-        # TODO: THIS IS BROKEN WHY IS IT GIVING NEGATIVE AND VERY BIG LOSSSSSS
+        OBJ_WEIGHT, NOOBJ_WEIGHT = self.obj_weights
+        
+        # OBJ_WEIGHT = 20
+        # NOOBJ_WEIGHT = 0.1
         assert preds.shape[0] == self.num_anchors, f'prediction should have {self.num_anchors} anchors'
+        
+        target_coords = torch.unique(target_coords, dim=0)
+        # print(target_coords.shape)
         
         loss = 0
         target_OH = torch.zeros(scale, scale)
-        target_OH[target_coords[:,1], target_coords[:,0]] = 1
+        target_OH[target_coords[:, 0], target_coords[:, 1]] = 1
         target_OH = target_OH.view(-1)
         target_OH_noobj = 1 - target_OH
+        
+        target_OH = torch.ones(target_coords.shape[0])
+        target_OH_noobj = torch.zeros((scale * scale) - target_coords.shape[0])
+        
+        # Original. Repeat
         target_OH = target_OH.repeat(self.num_anchors, 1)
         target_OH_noobj = target_OH_noobj.repeat(self.num_anchors, 1)
         
-        pred_OH = preds[:, 4, :, :]
-        pred_OH = pred_OH.view(self.num_anchors, -1)
-        BCELOSS = self.bceloss(pred_OH, target_OH)
-        loss = OBJ_WEIGHT*(BCELOSS * target_OH).sum() + NOOBJ_WEIGHT*(BCELOSS * target_OH_noobj).sum()
-
         
-        return self.bceloss(pred_OH, target_OH)
+        # Original
+        # pred_OH = preds[:, 4, :, :]
+        # pred_OH_test = preds[:, 4, target_coords[:, 0], target_coords[:, 1]]
+        
+        pred_OH = preds.view(self.num_anchors, 19, -1) # Flatten 13x13 -> 169, etc.
+        noobj_coords = torch.sum(target_coords[:] * torch.tensor([scale, 1]), dim=1) # Get flattened indices from coords
+        obj_preds = pred_OH[:, 4, noobj_coords] # Get obj scores from obj cells
+        
+        no_obj_mask = torch.ones(scale * scale, dtype=torch.bool) # Mask to keep only the no_obj cells
+        no_obj_mask[noobj_coords] = False
+        # print(no_obj_mask)
+        no_obj_preds = pred_OH[:, 4, no_obj_mask]
+        # print(pred_OH[:, 4, no_obj_mask].shape)
+        
+        # print(no_obj_mask)
+        # print(test_coords)
+        # print(target_OH.shape, target_OH_noobj.shape, '|', obj_preds.shape, no_obj_preds.shape, '|', test_coords.shape, target_coords.shape)
+        
+        bce_objloss = self.bceloss(obj_preds, target_OH)
+        bce_noobjloss = self.bceloss(no_obj_preds, target_OH_noobj)
+        
+        # print((OBJ_WEIGHT * bce_objloss) + (NOOBJ_WEIGHT * bce_no_objloss))
+        
+        return (OBJ_WEIGHT * bce_objloss) + (NOOBJ_WEIGHT * bce_noobjloss)
+
         
     def bounding_loss(self, ground_truths, relevant_preds, scale_dim):
         # Broadcast sig and exp across each layer
@@ -90,9 +120,10 @@ class MultiFactorLoss(nn.Module):
                 relevant_preds = pred_image[:, :, cell_coords[:, 0], cell_coords[:, 1]]
                 
                 # Perform Objectness Loss
-                obj_loss = self.ObjLoss(cell_coords, pred_image.to('cpu'), scale_dim)
+                obj_loss = self.ObjLoss(cell_coords.to('cpu'), pred_image.to('cpu'), scale_dim)
                 total_loss += obj_loss
                 # obj_losses.append(self.ObjLoss(cell_coords, pred_image.to('cpu'), scale_dim))
+                # return
                 
                 # Perform Box Loss
                 box_loss = self.bounding_loss(gt_valid.to('cpu'), relevant_preds.to('cpu'), scale_dim)
@@ -102,23 +133,9 @@ class MultiFactorLoss(nn.Module):
                 # Perform Class Loss
                 class_loss = self.class_loss(gt_valid.to('cpu'), relevant_preds.to('cpu'), scale_dim)
                 total_loss += class_loss
+                # class_losses.append(self.class_loss(gt_valid.to('cpu'), relevant_preds.to('cpu'), scale_dim))
                 
                 # Check Negative Loss
                 if obj_loss.item() < 0 or box_loss.item() < 0 or class_loss.item() < 0:
-                    print(obj_loss.item(), box_loss.item(), class_loss.item())
-                # class_losses.append(self.class_loss(gt_valid.to('cpu'), relevant_preds.to('cpu'), scale_dim))
-                
-            # Mean across batches
-            # bbox_losses = torch.tensor(bbox_losses)
-            # bbox_losses = torch.mean(bbox_losses) if self.batch_avg else torch.sum(bbox_losses)
-            
-            # obj_losses = torch.tensor(obj_losses)
-            # obj_losses = torch.mean(obj_losses) if self.batch_avg else torch.sum(obj_losses)
-            
-            # class_losses = torch.tensor(class_losses)
-            # class_losses = torch.mean(class_losses) if self.batch_avg else torch.sum(class_losses)
-            
-            # Add the total los for this scale
-            # total_loss += bbox_losses + obj_losses + class_losses
-        # print(total_loss.item(), total_loss.requires_grad)
+                    print(f'Negative Loss Detected. Obj: {obj_loss.item()}, Box: {box_loss.item()}, Class: {class_loss.item()}')
         return total_loss

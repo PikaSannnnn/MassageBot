@@ -26,7 +26,7 @@ def train(model, optimizer, criterion, train_loader, val_loader, anchors, epochs
             loss = criterion(anchors, labels, outputs)            
             
             optimizer.zero_grad()
-            print(loss.item())
+            # print(loss.item())
             train_loss += loss.item()
         
             loss.backward()
