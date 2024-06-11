@@ -16,15 +16,15 @@ class DetectorHead(nn.Module):
     
     input -> ConvHead -> ConvHead -> ConvHead -> Conv2d -> linear
     '''
-    def __init__(self, block_channels: list, num_classes: int, anchor_boxes: torch.tensor):
+    def __init__(self, block_channels: list, num_classes: int, num_anchors):
         super().__init__()
         # super(DetectorHead, self).__init__()
         # assert isinstance(channel_sizes, list) and len(channel_sizes) == 3, 'channel_sizes expected a list of 3 integers: in_channel, mid_channel, out_channel'
-        assert isinstance(anchor_boxes, torch.Tensor), 'anchor_boxes must be a tensor of anchor box dimensions [w, l]'
+#         assert isinstance(anchor_boxes, torch.Tensor), 'anchor_boxes must be a tensor of anchor box dimensions [w, l]'
         
         # Save anchor box info
-        self.anchor_boxes = anchor_boxes
-        self.num_anchors = self.anchor_boxes.shape[0]
+#         self.anchor_boxes = anchor_boxes
+        self.num_anchors = num_anchors
         
         self.detector_blocks = nn.ModuleList([ConvHead(channel_sizes) for channel_sizes in block_channels])
         # self.subblocks = nn.ModuleList([ConvHead(channel_sizes) for _ in range(num_blocks - 1)])
