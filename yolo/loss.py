@@ -22,7 +22,28 @@ class MultiFactorLoss(nn.Module):
         assert len(obj_weights) == 2, 'obj_weights must be a 2d tuple or list of the (Obj_weight, and NoObj_weight)'
         self.obj_weights = obj_weights
 
-    def ObjLoss(self, target_coords, preds, scale):
+    def obj_loss(self, target_coords, preds, scale): # Method 1 Obj Loss
+        OBJ_WEIGHT = 20
+        NOOBJ_WEIGHT = 0.1
+        
+        loss = 0
+        target_OH = torch.zeros(scale, scale)
+        target_OH[target_coords[:, 0], target_coords[:, 1]] = 1
+        target_OH = target_OH.view(-1)
+        target_OH_noobj = 1 - target_OH
+
+        target_OH = target_OH.repeat(self.num_anchors, 1)
+        target_OH_noobj = target_OH_noobj.repeat(self.num_anchors, 1)
+
+        pred_OH = preds[:, 4, :, :]
+        pred_OH = pred_OH.view(self.num_anchors, -1)
+        BCELOSS = self.bceloss(pred_OH, target_OH)
+        loss = (BCELOSS * target_OH).sum() + 0.5*(BCELOSS * target_OH_noobj).sum()
+        loss = OBJ_WEIGHT*(BCELOSS * target_OH).sum() + NOOBJ_WEIGHT*(BCELOSS * target_OH_noobj).sum()
+
+        return self.bceloss(pred_OH, target_OH)
+
+    def ObjLoss(self, target_coords, preds, scale): # Method 2 Obj Loss
         OBJ_WEIGHT, NOOBJ_WEIGHT = self.obj_weights
         
         # OBJ_WEIGHT = 20
@@ -30,25 +51,12 @@ class MultiFactorLoss(nn.Module):
         assert preds.shape[0] == self.num_anchors, f'prediction should have {self.num_anchors} anchors'
         
         target_coords = torch.unique(target_coords, dim=0)
-        # print(target_coords.shape)
-        
-        loss = 0
-        target_OH = torch.zeros(scale, scale)
-        target_OH[target_coords[:, 0], target_coords[:, 1]] = 1
-        target_OH = target_OH.view(-1)
-        target_OH_noobj = 1 - target_OH
         
         target_OH = torch.ones(target_coords.shape[0])
         target_OH_noobj = torch.zeros((scale * scale) - target_coords.shape[0])
         
-        # Original. Repeat
         target_OH = target_OH.repeat(self.num_anchors, 1)
         target_OH_noobj = target_OH_noobj.repeat(self.num_anchors, 1)
-        
-        
-        # Original
-        # pred_OH = preds[:, 4, :, :]
-        # pred_OH_test = preds[:, 4, target_coords[:, 0], target_coords[:, 1]]
         
         pred_OH = preds.view(self.num_anchors, 19, -1) # Flatten 13x13 -> 169, etc.
         noobj_coords = torch.sum(target_coords[:] * torch.tensor([scale, 1]), dim=1) # Get flattened indices from coords
